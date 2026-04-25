@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>WhatsApp Chatbot Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --wa-dark:       #111b21;
+    --wa-panel:      #202c33;
+    --wa-bubble-in:  #202c33;
+    --wa-bubble-out: #005c4b;
+    --wa-input-bg:   #2a3942;
+    --wa-green:      #00a884;
+    --wa-green-lit:  #00cf9d;
+    --wa-text:       #e9edef;
+    --wa-sub:        #8696a0;
+    --wa-tick:       #53bdeb;
+    --wa-border:     #2a3942;
+    --radius-msg:    12px;
+  }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--wa-dark);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 16px;
+  }
+
+  .phone {
+    width: 390px;
+    height: 780px;
+    background: var(--wa-dark);
+    border-radius: 36px;
+    border: 2px solid #2a3942;
+    box-shadow: 0 40px 80px rgba(0,0,0,.7), 0 0 0 1px #111;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Header */
+  .header {
+    background: var(--wa-panel);
+    padding: 12px 16px 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--wa-border);
+    flex-shrink: 0;
+  }
+  .avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--wa-green), #128c7e);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+    box-shadow: 0 0 0 2px rgba(0,168,132,.3);
+  }
+  .header-info { flex: 1; }
+  .header-name { color: var(--wa-text); font-weight: 700; font-size: 15px; }
+  .header-status {
+    color: var(--wa-green); font-size: 12px; font-weight: 600;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--wa-green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: .5; transform: scale(1.3); }
+  }
+  .header-icons { display: flex; gap: 18px; color: var(--wa-sub); font-size: 18px; cursor: pointer; }
+  .header-icons span:hover { color: var(--wa-text); }
+
+  /* Chat area */
+  .chat-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background-color: #0b141a;
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23182229' fill-opacity='0.6'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    scroll-behavior: smooth;
+  }
+  .chat-area::-webkit-scrollbar { width: 4px; }
+  .chat-area::-webkit-scrollbar-thumb { background: #2a3942; border-radius: 4px; }
+
+  .date-chip {
+    align-self: center;
+    background: #182229cc;
+    color: var(--wa-sub);
+    font-size: 11.5px; font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 8px;
+    margin: 6px 0;
+  }
+
+  /* Messages */
+  .msg-row { display: flex; animation: fadeUp .25s ease both; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .msg-row.out { justify-content: flex-end; }
+  .msg-row.in  { justify-content: flex-start; }
+
+  .bubble {
+    max-width: 78%;
+    padding: 7px 10px 4px;
+    border-radius: var(--radius-msg);
+    font-size: 14px;
+    line-height: 1.45;
+    position: relative;
+    word-break: break-word;
+  }
+  .bubble.out {
+    background: var(--wa-bubble-out);
+    color: var(--wa-text);
+    border-bottom-right-radius: 3px;
+  }
+  .bubble.in {
+    background: var(--wa-bubble-in);
+    color: var(--wa-text);
+    border-bottom-left-radius: 3px;
+  }
+  .bubble-meta {
+    display: flex; align-items: center; justify-content: flex-end;
+    gap: 4px; margin-top: 3px;
+  }
+  .bubble-time { color: var(--wa-sub); font-size: 10.5px; }
+  .tick { color: var(--wa-tick); font-size: 12px; }
+
+  /* Typing indicator */
+  .typing-bubble {
+    background: var(--wa-bubble-in);
+    border-radius: var(--radius-msg);
+    border-bottom-left-radius: 3px;
+    padding: 10px 14px;
+    display: flex; gap: 5px; align-items: center;
+    animation: fadeUp .2s ease both;
+  }
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--wa-sub);
+    animation: bounce 1.2s infinite;
+  }
+  .dot:nth-child(2) { animation-delay: .2s; }
+  .dot:nth-child(3) { animation-delay: .4s; }
+  @keyframes bounce {
+    0%,80%,100% { transform: translateY(0); }
+    40%          { transform: translateY(-6px); }
+  }
+
+  /* Quick-reply chips */
+  .chips {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    padding: 6px 14px 0;
+  }
+  .chip {
+    background: #1d282e;
+    border: 1px solid var(--wa-border);
+    color: var(--wa-green);
+    font-family: 'Nunito', sans-serif;
+    font-size: 12.5px; font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+  }
+  .chip:hover { background: #243038; border-color: var(--wa-green); }
+
+  /* Input bar */
+  .input-bar {
+    background: var(--wa-panel);
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-top: 1px solid var(--wa-border);
+    flex-shrink: 0;
+  }
+  .emoji-btn { color: var(--wa-sub); font-size: 22px; cursor: pointer; flex-shrink: 0; }
+  .emoji-btn:hover { color: var(--wa-text); }
+
+  .input-wrap {
+    flex: 1;
+    background: var(--wa-input-bg);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+  }
+  #msgInput {
+    flex: 1;
+    background: none;
+    border: none; outline: none;
+    color: var(--wa-text);
+    font-family: 'Nunito', sans-serif;
+    font-size: 14.5px;
+    padding: 9px 0;
+    caret-color: var(--wa-green);
+  }
+  #msgInput::placeholder { color: var(--wa-sub); }
+
+  .send-btn {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--wa-green);
+    border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .2s, transform .15s;
+    flex-shrink: 0;
+  }
+  .send-btn:hover { background: var(--wa-green-lit); transform: scale(1.06); }
+  .send-btn svg { fill: white; width: 20px; height: 20px; }
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="avatar">🤖</div>
+    <div class="header-info">
+      <div class="header-name">Jarurat Bot</div>
+      <div class="header-status">
+        <span class="status-dot"></span> online
+      </div>
+    </div>
+    <div class="header-icons">
+      <span title="Video call">📹</span>
+      <span title="Call">📞</span>
+      <span title="Menu">⋮</span>
+    </div>
+  </div>
+
+  <!-- Quick-reply chips -->
+  <div class="chips">
+    <button class="chip" onclick="quickSend('Hi')">👋 Hi</button>
+    <button class="chip" onclick="quickSend('Help')">❓ Help</button>
+    <button class="chip" onclick="quickSend('Thanks')">🙏 Thanks</button>
+    <button class="chip" onclick="quickSend('Bye')">👋 Bye</button>
+  </div>
+
+  <!-- Chat messages -->
+  <div class="chat-area" id="chatArea">
+    <div class="date-chip">Today</div>
+    <div class="msg-row in">
+      <div class="bubble in">
+        👋 Hello! I am <strong>Jarurat Bot</strong>.<br/>
+        Try saying <em>Hi</em>, <em>Help</em>, <em>Thanks</em>, or <em>Bye</em>.
+        <div class="bubble-meta">
+          <span class="bubble-time" id="welcomeTime"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input bar -->
+  <div class="input-bar">
+    <span class="emoji-btn">😊</span>
+    <div class="input-wrap">
+      <input id="msgInput" type="text" placeholder="Message" maxlength="200"
+             autocomplete="off" onkeydown="if(event.key==='Enter') sendMessage()"/>
+    </div>
+    <button class="send-btn" onclick="sendMessage()" title="Send">
+      <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const chatArea = document.getElementById('chatArea');
+  const msgInput = document.getElementById('msgInput');
+  document.getElementById('welcomeTime').textContent = now();
+
+  function now() {
+    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function quickSend(text) {
+    msgInput.value = text;
+    sendMessage();
+  }
+
+  async function sendMessage() {
+    const text = msgInput.value.trim();
+    if (!text) return;
+    msgInput.value = '';
+
+    addBubble('out', text);
+    const typingId = 'typing-' + Date.now();
+    addTyping(typingId);
+
+    try {
+      const res = await fetch('/webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: '+919876543210',
+          body: text,
+          timestamp: new Date().toISOString()
+        })
+      });
+      removeTyping(typingId);
+      if (!res.ok) throw new Error('Server error');
+      const data = await res.json();
+      addBubble('in', data.reply || 'No reply received.');
+    } catch (err) {
+      removeTyping(typingId);
+      addBubble('in', offlineReply(text));
+    }
+  }
+
+  function offlineReply(text) {
+    const map = {
+      'hi':       'Hello! How can I assist you today?',
+      'hello':    'Hello! How can I assist you today?',
+      'bye':      'Goodbye! Have a wonderful day. 👋',
+      'goodbye':  'Goodbye! Have a wonderful day. 👋',
+      'help':     'You can say: Hi, Hello, Bye, Goodbye, Thanks.',
+      'thanks':   "You're welcome! Is there anything else I can help with?",
+      'thank you':"You're welcome! Is there anything else I can help with?",
+    };
+    return map[text.trim().toLowerCase()]
+      || "I'm sorry, I didn't understand that. Type \"Help\" for available commands.";
+  }
+
+  function addBubble(dir, text) {
+    const row = document.createElement('div');
+    row.className = `msg-row ${dir}`;
+    const tick = dir === 'out' ? '<span class="tick">✓✓</span>' : '';
+    row.innerHTML = `<div class="bubble ${dir}">${escHtml(text)}
+      <div class="bubble-meta">
+        <span class="bubble-time">${now()}</span>${tick}
+      </div></div>`;
+    chatArea.appendChild(row);
+    chatArea.scrollTop = chatArea.scrollHeight;
+  }
+
+  function addTyping(id) {
+    const row = document.createElement('div');
+    row.className = 'msg-row in'; row.id = id;
+    row.innerHTML = `<div class="typing-bubble">
+      <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    </div>`;
+    chatArea.appendChild(row);
+    chatArea.scrollTop = chatArea.scrollHeight;
+  }
+
+  function removeTyping(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+</body>
+</html>
