@@ -1,3 +1,5 @@
+Online Deploy on AWS Free Tier : http://13.201.72.157:8080/
+
 # WhatsApp Chatbot Backend Simulation
 ### Java 17 + Spring Boot 3.2
 
@@ -92,7 +94,7 @@ mvn test
 mvn clean package -DskipTests
 
 # Upload target/whatsapp-chatbot-0.0.1-SNAPSHOT.jar
-# to AWS Elastic Beanstalk → Java 17 platform
+# to AWS EC2 (Virtual Server ) -> Ubuntu 24.04 -> Java 17 platform
 ```
 
 ## Deploy on Render (Free)
